@@ -513,7 +513,7 @@ leftDiv.appendChild(runBtn2);
 leftDiv.appendChild(stopBtn2);
 leftDiv.appendChild(output2);
 
-let currentRunId1 = null;
+let currentRunId2 = null;
 
 runBtn2.addEventListener("click", () => {
   const code = editor1.getValue().trim();
