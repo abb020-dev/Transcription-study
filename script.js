@@ -389,10 +389,8 @@ function renderQuestions(container, questions, twoInputs = false) {
           // e is a DOM event; pass it for keystroke logging
           try { logKeystroke(e); } catch (err) { /* non-fatal */ }
         });
-      
 
-
-      // --------- Run button & output ---------
+      // --------- Run button & output ---------hello 
       const runBtn1 = document.createElement('button');
       runBtn1.className = 'runBtn';
       runBtn1.textContent = language === 'en' ? 'Run' : '실행 (버전1)';
