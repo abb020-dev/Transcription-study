@@ -3,70 +3,11 @@
 // -------------------------
 // Pyodide + Run-button code placed at the TOP (as requested)
 // -------------------------
+let pyWorker = null;
+let interruptBuffer = null;
+let workerReady = false;
 
-// ---- Pyodide setup ----
-let pyodide = null;
-let pyodideReady = false;
-
-async function loadPyodideAndPackages() {
-  try {
-    // Ensure indexURL matches the pyodide script you loaded in index.html
-    pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/' });
-    // Optionally load micropip or other packages later:
-    // await pyodide.loadPackage(['micropip']);
-    pyodideReady = true;
-    console.log('Pyodide loaded');
-  } catch (e) {
-    console.error('Failed to load Pyodide:', e);
-  }
-}
-loadPyodideAndPackages();
-
-// Utility to run Python capturing stdout & exceptions
-async function runPythonCaptureOutput(code) {
-  if (!pyodideReady) {
-    throw new Error("Pyodide not loaded yet");
-  }
-
-  // Create a unique name to avoid collisions
-  const uid = Date.now().toString();
-  const outVar = `_output_${uid}`;
-
-  // Wrap code so we capture stdout manually
-  const wrapped =
-    `
-import sys, io, traceback
-${outVar} = io.StringIO()
-_old_stdout = sys.stdout
-sys.stdout = ${outVar}
-try:
-` +
-    code
-      .split("\n")
-      .map(line => "    " + line)
-      .join("\n") +
-    `
-except Exception as e:
-    sys.stdout = _old_stdout
-    raise e
-finally:
-    sys.stdout = _old_stdout
-
-${outVar}.getvalue()
-`;
-
-  try {
-    // If Python throws, this will throw a JS error
-    const result = await pyodide.runPythonAsync(wrapped);
-    return String(result || "");
-  } catch (pyError) {
-    // Convert Pyodide Python error into a clean JS error
-    let message = pyError.message || String(pyError);
-    // Optional cleanup: remove Pyodide internal lines
-    message = message.replace(/File.*line.*\n?/g, "");
-    throw new Error(message.trim());
-  }
-}
+const pendingRuns = {};
 
 function ensureCodeMirrorFocus(editor) {
   const wrapper = editor.getWrapperElement();
@@ -78,7 +19,40 @@ function ensureCodeMirrorFocus(editor) {
     }, 0);
   });
 }
+function setupWorker() {
+  interruptBuffer = new Int32Array(new SharedArrayBuffer(4));
 
+  pyWorker = new Worker("py-worker.js");
+
+  pyWorker.postMessage({
+    type: "init",
+    interruptBuffer: interruptBuffer.buffer
+  });
+
+  pyWorker.onmessage = (event) => {
+    const data = event.data;
+
+    if (data.type === "ready") {
+      workerReady = true;
+      return;
+    }
+
+    const run = pendingRuns[data.id];
+    if (!run) return;
+
+    const { outputElement } = run;
+
+    if (data.type === "result") {
+      outputElement.textContent = data.output;
+    }
+
+    if (data.type === "error") {
+      outputElement.textContent = data.error;
+    }
+
+    delete pendingRuns[data.id];
+  };
+}
 // -------------------------
 // The rest of your original application code
 // (keystroke logging, rendering, CodeMirror integration, downloads, translations, etc.)
@@ -418,37 +392,57 @@ function renderQuestions(container, questions, twoInputs = false) {
       
 
 
-      // --------- Run button & output for editor1 ---------
+      // --------- Run button & output ---------
       const runBtn1 = document.createElement('button');
       runBtn1.className = 'runBtn';
       runBtn1.textContent = language === 'en' ? 'Run' : '실행 (버전1)';
       leftDiv.appendChild(runBtn1);
+      const runBtn1 = document.createElement("button");
+runBtn1.textContent = "Run";
 
-      const output1 = document.createElement('pre');
-      output1.className = 'outputBox';
-      leftDiv.appendChild(output1);
-  runBtn1.addEventListener("click", async () => {
+const stopBtn1 = document.createElement("button");
+stopBtn1.textContent = "Stop";
+
+const output1 = document.createElement("pre");
+output1.className = "outputBox";
+
+leftDiv.appendChild(runBtn1);
+leftDiv.appendChild(stopBtn1);
+leftDiv.appendChild(output1);
+
+let currentRunId1 = null;
+
+runBtn1.addEventListener("click", () => {
   const code = editor1.getValue().trim();
 
-  if (!pyodideReady) {
-    output1.textContent = "Pyodide is still loading...";
+  if (!workerReady) {
+    output1.textContent = "Python still loading...";
     return;
   }
 
+  const runId = Date.now() + Math.random();
+  currentRunId1 = runId;
+
   output1.textContent = "Running...";
 
-  try {
-    const out = await runPythonCaptureOutput(code);
-    output1.textContent = out || "";
-  } catch (err) {
-    let cleanMessage = "Your code contains an error.\n\n";
-    if (err.message) {
-      const lines = err.message.split("\n");
-      cleanMessage += lines[lines.length - 1].trim();
-    }
-    output1.textContent = cleanMessage;
-  }
+  pendingRuns[runId] = {
+    outputElement: output1
+  };
+
+  pyWorker.postMessage({
+    type: "run",
+    code: code,
+    id: runId
+  });
 });
+
+stopBtn1.addEventListener("click", () => {
+  if (!currentRunId1) return;
+
+  pyWorker.postMessage({ type: "interrupt" });
+  output1.textContent = "Stopping...";
+});
+
       inputs.push({ question: q, element: editor1, type: "code", version: 1 });
 
       // Right input column
@@ -508,38 +502,52 @@ wrapper.addEventListener("cut",   e => e.preventDefault());
       editor2.on('keyup', (instance, e) => {
           try { logKeystroke(e); } catch (err) { /* non-fatal */ }
           });
+    const runBtn2 = document.createElement("button");
+runBtn1.textContent = "Run";
 
-      // --------- Run button & output for editor2 ---------
-      const runBtn2 = document.createElement('button');
-      runBtn2.className = 'runBtn';
-      runBtn2.textContent = language === 'en' ? 'Run' : '실행 (버전2)';
-      rightDiv.appendChild(runBtn2);
+const stopBtn2 = document.createElement("button");
+stopBtn1.textContent = "Stop";
 
-      const output2 = document.createElement('pre');
-      output2.className = 'outputBox';
-      rightDiv.appendChild(output2);
-     runBtn2.addEventListener("click", async () => {
-  const code = editor2.getValue().trim();
+const output2 = document.createElement("pre");
+output2.className = "outputBox";
 
-  if (!pyodideReady) {
-    output2.textContent = "Pyodide is still loading...";
+leftDiv.appendChild(runBtn2);
+leftDiv.appendChild(stopBtn2);
+leftDiv.appendChild(output2);
+
+let currentRunId1 = null;
+
+runBtn2.addEventListener("click", () => {
+  const code = editor1.getValue().trim();
+
+  if (!workerReady) {
+    output1.textContent = "Python still loading...";
     return;
   }
 
+  const runId = Date.now() + Math.random();
+  currentRunId2 = runId;
+
   output2.textContent = "Running...";
 
-  try {
-    const out = await runPythonCaptureOutput(code);
-    output2.textContent = out || "";
-  } catch (err) {
-    let cleanMessage = "Your code contains an error.\n\n";
-    if (err.message) {
-      const lines = err.message.split("\n");
-      cleanMessage += lines[lines.length - 1].trim();
-    }
-    output2.textContent = cleanMessage;
-  }
+  pendingRuns[runId] = {
+    outputElement: output2
+  };
+
+  pyWorker.postMessage({
+    type: "run",
+    code: code,
+    id: runId
+  });
 });
+
+stopBtn2.addEventListener("click", () => {
+  if (!currentRunId1) return;
+
+  pyWorker.postMessage({ type: "interrupt" });
+  output2.textContent = "Stopping...";
+});
+
      inputs.push({ question: q, element: editor2, type: "code", version: 2 }); 
 
       const dualDiv = document.createElement("div");
@@ -576,33 +584,51 @@ ensureCodeMirrorFocus(editor);
   runBtn.className = "runBtn";
   runBtn.textContent = language === "en" ? "Run" : "실행";
   questionDiv.appendChild(runBtn);
+  const runBtn = document.createElement("button");
+runBtn.textContent = "Run";
 
-  const outputSingle = document.createElement("pre");
-  outputSingle.className = "outputBox";
-  questionDiv.appendChild(outputSingle);
-runBtn.addEventListener("click", async () => {
+const stopBtn = document.createElement("button");
+stopBtn.textContent = "Stop";
+
+const outputSingle = document.createElement("pre");
+outputSingle.className = "outputBox";
+
+questionDiv.appendChild(runBtn);
+questionDiv.appendChild(stopBtn);
+questionDiv.appendChild(outputSingle);
+
+let currentRunId = null;
+
+runBtn.addEventListener("click", () => {
   const code = editor.getValue().trim();
 
-  if (!pyodideReady) {
-    outputSingle.textContent = "Pyodide is still loading...";
+  if (!workerReady) {
+    outputSingle.textContent = "Python still loading...";
     return;
   }
 
+  const runId = Date.now() + Math.random();
+  currentRunId = runId;
+
   outputSingle.textContent = "Running...";
 
-  try {
-    const out = await runPythonCaptureOutput(code);
-    outputSingle.textContent = out || "";
-  } catch (err) {
-    let cleanMessage = "Your code contains an error.\n\n";
-    if (err.message) {
-      const lines = err.message.split("\n");
-      cleanMessage += lines[lines.length - 1].trim();
-    }
-    outputSingle.textContent = cleanMessage;
-  }
+  pendingRuns[runId] = {
+    outputElement: outputSingle
+  };
+
+  pyWorker.postMessage({
+    type: "run",
+    code: code,
+    id: runId
+  });
 });
 
+stopBtn.addEventListener("click", () => {
+  if (!currentRunId) return;
+
+  pyWorker.postMessage({ type: "interrupt" });
+  outputSingle.textContent = "Stopping...";
+});
   inputs.push({ question: q, element: editor, type: "code", version: 1 });
 } 
 // ===============================
@@ -891,6 +917,7 @@ function attachParticipateHandler() {
 
 // Event listener when DOM is fully loaded
 document.addEventListener('DOMContentLoaded', () => {
+  setupWorker(); 
   attachParticipateHandler();
 
   const userInfoForm = document.getElementById('userInfoForm');
