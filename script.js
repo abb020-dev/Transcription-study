@@ -575,10 +575,6 @@ ensureCodeMirrorFocus(editor);
 
   // ---- Run button + output ----
   const runBtn = document.createElement("button");
-  runBtn.className = "runBtn";
-  runBtn.textContent = language === "en" ? "Run" : "실행";
-  questionDiv.appendChild(runBtn);
-  const runBtn = document.createElement("button");
 runBtn.textContent = "Run";
 
 const stopBtn = document.createElement("button");
