@@ -435,6 +435,7 @@ stopBtn1.addEventListener("click", () => {
 
   pyWorker.postMessage({ type: "interrupt" });
   output1.textContent = "Stopping...";
+  currentRunId1 = null;
 });
 
       inputs.push({ question: q, element: editor1, type: "code", version: 1 });
@@ -540,6 +541,7 @@ stopBtn2.addEventListener("click", () => {
 
   pyWorker.postMessage({ type: "interrupt" });
   output2.textContent = "Stopping...";
+  currentRunId2 = null;
 });
 
      inputs.push({ question: q, element: editor2, type: "code", version: 2 }); 
@@ -618,6 +620,7 @@ stopBtn.addEventListener("click", () => {
 
   pyWorker.postMessage({ type: "interrupt" });
   outputSingle.textContent = "Stopping...";
+  currentRunId = null;
 });
   inputs.push({ question: q, element: editor, type: "code", version: 1 });
 } 
