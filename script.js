@@ -270,28 +270,21 @@ function handleWorkerMessage(event) {
 
   if (data.type === "result") {
     const run = pendingRuns[data.id];
-    if (run) {
-      run.outputElement.textContent = data.output;
-    }
+    if (run) run.outputElement.textContent = data.output;
   }
 
   if (data.type === "error") {
     const run = pendingRuns[data.id];
-    if (run) {
-      run.outputElement.textContent = data.error;
-    }
+    if (run) run.outputElement.textContent = data.error;
 
-    // 🔥 THIS IS THE KEY PART
-    if (data.error && data.error.toLowerCase().includes("interrupt")) {
-      workerReady = false;
-      restartWorker();
-    }
+    workerReady = false;
+    restartWorker();
   }
 
   if (data.type === "ready") {
     workerReady = true;
   }
-}
+} // ✅ ADD THIS LINE
 function restartWorker() {
   if (pyWorker) {
     pyWorker.terminate();
