@@ -500,7 +500,7 @@ wrapper.addEventListener("cut",   e => e.preventDefault());
 runBtn2.textContent = "Run";
 
 const stopBtn2 = document.createElement("button");
-stopBtn1.textContent = "Stop";
+stopBtn2.textContent = "Stop";
 
 const output2 = document.createElement("pre");
 output2.className = "outputBox";
