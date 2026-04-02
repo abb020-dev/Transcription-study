@@ -391,11 +391,7 @@ function renderQuestions(container, questions, twoInputs = false) {
         });
 
       // --------- Run button & output ---------hello 
-      const runBtn1 = document.createElement('button');
-      runBtn1.className = 'runBtn';
-      runBtn1.textContent = language === 'en' ? 'Run' : '실행 (버전1)';
-      leftDiv.appendChild(runBtn1);
-      const runBtn1 = document.createElement("button");
+const runBtn1 = document.createElement('button');
 runBtn1.textContent = "Run";
 
 const stopBtn1 = document.createElement("button");
@@ -501,7 +497,7 @@ wrapper.addEventListener("cut",   e => e.preventDefault());
           try { logKeystroke(e); } catch (err) { /* non-fatal */ }
           });
     const runBtn2 = document.createElement("button");
-runBtn1.textContent = "Run";
+runBtn2.textContent = "Run";
 
 const stopBtn2 = document.createElement("button");
 stopBtn1.textContent = "Stop";
