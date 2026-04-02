@@ -270,12 +270,22 @@ function handleWorkerMessage(event) {
 
   if (data.type === "result") {
     const run = pendingRuns[data.id];
-    if (run) run.outputElement.textContent = data.output;
+    if (run) {
+      run.outputElement.textContent = data.output;
+    }
   }
 
   if (data.type === "error") {
     const run = pendingRuns[data.id];
-    if (run) run.outputElement.textContent = data.error;
+    if (run) {
+      run.outputElement.textContent = data.error;
+    }
+
+    // 🔥 THIS IS THE KEY PART
+    if (data.error && data.error.toLowerCase().includes("interrupt")) {
+      workerReady = false;
+      restartWorker();
+    }
   }
 
   if (data.type === "ready") {
@@ -450,7 +460,6 @@ stopBtn1.addEventListener("click", () => {
 
   // 🔥 RESTART WORKER
   workerReady = false;
-  restartWorker();
 });
 
       inputs.push({ question: q, element: editor1, type: "code", version: 1 });
@@ -558,7 +567,6 @@ stopBtn2.addEventListener("click", () => {
   output2.textContent = "Stopping...";
   currentRunId2 = null;
   workerReady = false;
-  restartWorker();
 });
 
      inputs.push({ question: q, element: editor2, type: "code", version: 2 }); 
@@ -640,7 +648,7 @@ stopBtn.addEventListener("click", () => {
   currentRunId = null;
 
   workerReady = false;
-  restartWorker();
+  
 });
   inputs.push({ question: q, element: editor, type: "code", version: 1 });
 } 
