@@ -28,31 +28,6 @@ function setupWorker() {
     type: "init",
     interruptBuffer: interruptBuffer.buffer
   });
-
-  pyWorker.onmessage = (event) => {
-    const data = event.data;
-
-    if (data.type === "ready") {
-      workerReady = true;
-      return;
-    }
-
-    const run = pendingRuns[data.id];
-    if (!run) return;
-
-    const { outputElement } = run;
-
-    if (data.type === "result") {
-      outputElement.textContent = data.output;
-    }
-
-    if (data.type === "error") {
-      outputElement.textContent = data.error;
-    }
-
-    delete pendingRuns[data.id];
-  };
-}
 // -------------------------
 // The rest of your original application code
 // (keystroke logging, rendering, CodeMirror integration, downloads, translations, etc.)
@@ -290,6 +265,41 @@ submitButton.addEventListener('click', () => {
   }
 });
 }
+function handleWorkerMessage(event) {
+  const data = event.data;
+
+  if (data.type === "result") {
+    const run = pendingRuns[data.id];
+    if (run) run.outputElement.textContent = data.output;
+  }
+
+  if (data.type === "error") {
+    const run = pendingRuns[data.id];
+    if (run) run.outputElement.textContent = data.error;
+  }
+
+  if (data.type === "ready") {
+    workerReady = true;
+  }
+}
+function restartWorker() {
+  if (pyWorker) {
+    pyWorker.terminate();
+  }
+
+  pyWorker = new Worker("py-worker.js");
+
+  const sharedBuffer = new SharedArrayBuffer(4);
+  interruptBuffer = new Int32Array(sharedBuffer);
+
+  pyWorker.postMessage({
+    type: "init",
+    interruptBuffer: sharedBuffer
+  });
+
+  pyWorker.onmessage = handleWorkerMessage; // reuse your existing handler
+}
+
 
 // Added Code: Fully replaced this function to add the code boxes to replace the text area boxes. Overall this is a function to render questions dynamically
 function renderQuestions(container, questions, twoInputs = false) {
@@ -435,7 +445,12 @@ stopBtn1.addEventListener("click", () => {
 
   pyWorker.postMessage({ type: "interrupt" });
   output1.textContent = "Stopping...";
+
   currentRunId1 = null;
+
+  // 🔥 RESTART WORKER
+  workerReady = false;
+  restartWorker();
 });
 
       inputs.push({ question: q, element: editor1, type: "code", version: 1 });
@@ -542,6 +557,8 @@ stopBtn2.addEventListener("click", () => {
   pyWorker.postMessage({ type: "interrupt" });
   output2.textContent = "Stopping...";
   currentRunId2 = null;
+  workerReady = false;
+  restartWorker();
 });
 
      inputs.push({ question: q, element: editor2, type: "code", version: 2 }); 
@@ -621,6 +638,9 @@ stopBtn.addEventListener("click", () => {
   pyWorker.postMessage({ type: "interrupt" });
   outputSingle.textContent = "Stopping...";
   currentRunId = null;
+
+  workerReady = false;
+  restartWorker();
 });
   inputs.push({ question: q, element: editor, type: "code", version: 1 });
 } 
