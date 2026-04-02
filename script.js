@@ -512,7 +512,7 @@ leftDiv.appendChild(output2);
 let currentRunId2 = null;
 
 runBtn2.addEventListener("click", () => {
-  const code = editor1.getValue().trim();
+  const code = editor2.getValue().trim();
 
   if (!workerReady) {
     output1.textContent = "Python still loading...";
@@ -536,7 +536,7 @@ runBtn2.addEventListener("click", () => {
 });
 
 stopBtn2.addEventListener("click", () => {
-  if (!currentRunId1) return;
+  if (!currentRunId2) return;
 
   pyWorker.postMessage({ type: "interrupt" });
   output2.textContent = "Stopping...";
