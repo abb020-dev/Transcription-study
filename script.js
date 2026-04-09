@@ -384,7 +384,7 @@ function renderQuestions(container, questions, twoInputs = false) {
       editor1._meta = {
         inputType: "code",
         version: 1,
-        questionIndex: i
+        questionIndex: i,
         question: q
       };
       
@@ -534,7 +534,7 @@ stopBtn1.addEventListener("click", () => {
 editor2._meta = {
   inputType: "code",
   version: 2,
-  questionIndex: i
+  questionIndex: i,
   question: q
 };
       
@@ -676,7 +676,7 @@ stopBtn2.addEventListener("click", () => {
   editor._meta = {
     inputType: "code",
     version: 1,
-    questionIndex: i
+    questionIndex: i,
     question: q
   };
 ensureCodeMirrorFocus(editor);
@@ -787,7 +787,7 @@ questionDiv.appendChild(explanationBoxV1);
 explanationBoxV1._meta = {
   inputType: "explanation",
   version: 1,
-  questionIndex: i
+  questionIndex: i,
   question: q
 };
 
@@ -817,7 +817,7 @@ explanationBoxV2.addEventListener("cut",   (e) => e.preventDefault());
 explanationBoxV2._meta = {
   inputType: "explanation",
   version: 2,
-  questionIndex: i
+  questionIndex: i,
   question: q
 };
 
