@@ -506,9 +506,9 @@ stopBtn2.textContent = "Stop";
 const output2 = document.createElement("pre");
 output2.className = "outputBox";
 
-leftDiv.appendChild(runBtn2);
-leftDiv.appendChild(stopBtn2);
-leftDiv.appendChild(output2);
+rightDiv.appendChild(runBtn2);
+rightDiv.appendChild(stopBtn2);
+rightDiv.appendChild(output2);
 
 let currentRunId2 = null;
 
