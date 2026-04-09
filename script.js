@@ -10,9 +10,35 @@ let workerReady = false;
 const pendingRuns = {};
 
 function ensureCodeMirrorFocus(editor) {
-  const wrapper = editor.getWrapperElement();
+  const wrapper0 = editor.getWrapperElement();
+  let lastMouseLog = 0;
 
-  wrapper.addEventListener("mousedown", () => {
+  wrapper0.addEventListener("mousemove", (e) => {
+    const now = Date.now();
+
+    if (now - lastMouseLog > 100) { // throttle (100ms)
+      lastMouseLog = now;
+
+      keystrokes.push({
+        s_n: currentSession + 1,
+        q: meta.question,
+        r_t: meta.inputType,
+        q_n: meta.questionIndex + 1,
+        version: meta.version,
+
+        event_type: "mouse",
+        
+        data: {
+          x: e.clientX,
+          y: e.clientY
+        },
+
+        timestamp: now
+      });
+    }
+  });
+
+  wrapper0.addEventListener("mousedown", () => {
     setTimeout(() => {
       editor.focus();
       editor.refresh();
@@ -172,68 +198,48 @@ let language = 'en'; // Default language
 
 // Function to log keystrokes, excluding first input in sessions 2 and 3
 // Function to log keystrokes, excluding first input in sessions 2 and 3
-function logKeystroke(event) {
-  let timestamp = Date.now();
-  let key = event.key;
+function logKeystroke(event, editor = null, element = null) {
 
-  if (event.key === "Tab") {
-    key = "INDENT";
-  }
-  
+  // ✅ 1. Get metadata
+  const meta = editor?._meta || element?._meta || {};
 
-  // Try to find the CodeMirror instance's textarea or underlying DOM node
-  // event.target will be a DOM node for native events; for CodeMirror keyboard events the 'event' passed by CodeMirror
-  // is usually a DOM KeyboardEvent; using event.target should work in most cases.
-  let inputIndex = inputs.findIndex(input => input.element === event.target || input.element.getInputElement && input.element.getInputElement && input.element.getInputElement?.() === event.target);
+  // ✅ 2. Get cursor position
+  let line = null;
+  let ch = null;
 
-  // If not found using direct target equality, we can attempt a fall-back: match by comparing CodeMirror.display.wrapper.contains(target)
-  if (inputIndex === -1) {
-    for (let i = 0; i < inputs.length; i++) {
-      const el = inputs[i].element;
-      if (el && el.getWrapperElement && typeof el.getWrapperElement === 'function') {
-        const wrapper = el.getWrapperElement();
-        if (wrapper && wrapper.contains && wrapper.contains(event.target)) {
-          inputIndex = i;
-          break;
-        }
-      }
-    }
+  if (editor && editor.getCursor) {
+    const cursor = editor.getCursor();
+    line = cursor.line;
+    ch = cursor.ch;
+  } else if (element && element.selectionStart != null) {
+    const text = element.value.substring(0, element.selectionStart);
+    const lines = text.split("\n");
+
+    line = lines.length - 1;
+    ch = lines[lines.length - 1].length;
   }
 
-  // Identify the current session questions
-  let questions;
-  if (currentSession === 1) {
-    questions = session1Questions[language];
-  } else if (currentSession === 2) {
-    questions = session2Questions[language];
-  } else if (currentSession === 3) {
-    questions = session3Questions[language];
-  }
+  // ✅ 3. Push data
+  keystrokes.push({
+    s_n: currentSession + 1,
+    r_t: meta.inputType,
+    q: meta.question,
+    q_n: (meta.questionIndex ?? 0) + 1,
+    version: meta.version,
 
-  let questionIndex = Math.floor((inputIndex - totalQuestions) / (currentSession === 1 ? 2 : 2));
-  let question = questions && questions[questionIndex] ? questions[questionIndex] : null;
+    event_type: "key",
 
-  // Skip logging for the first input field in sessions 2 and 3
-  if (currentSession !== 1) {
-    let isFirstInput = (inputIndex - totalQuestions) % 2 === 0;
-    if (isFirstInput) {
-      return; // Do not log keystrokes for the first input field
-    }
-  }
+    data: {
+      key: event.key,
+      code: event.code,
+      key_event_phase: event.type,
+      repeat: event.repeat,
+      line: line,
+      ch: ch
+    },
 
-let inputType = inputs[inputIndex]?.type || "unknown";
-
-keystrokes.push({
-  s_n: currentSession + 1,
-  q: question,
-  r_t: inputType, // 🔥 NEW: code vs explanation
-  q_n: (questionIndex + 1),
-  key: key,
-  code: event.code,
-  event: event.type,
-  timestamp: timestamp,
-  repeat: event.repeat
-});
+    timestamp: Date.now()
+  });
 }
 
 // Function to start the session after user information is captured
@@ -353,43 +359,94 @@ function renderQuestions(container, questions, twoInputs = false) {
       leftDiv.appendChild(textarea1);
 
       let editor1 = CodeMirror.fromTextArea(textarea1, {
-  lineNumbers: true,
-  mode: "python",
-  theme: "default",
-  indentUnit: 4,
-  smartIndent: true,
-  indentWithTabs: false,
-  extraKeys: {
-  Tab: function(cm) {
-    cm.replaceSelection("    ");
-  },
-  Backspace: function(cm) {
-    let cursor = cm.getCursor();
-    let line = cm.getLine(cursor.line);
+        lineNumbers: true,
+        mode: "python",
+        theme: "default",
+        indentUnit: 4,
+        smartIndent: true,
+        indentWithTabs: false,
+        extraKeys: {
+        Tab: function(cm) {
+          cm.replaceSelection("    ");
+        },
+        Backspace: function(cm) {
+          let cursor = cm.getCursor();
+          let line = cm.getLine(cursor.line);
 
-    if (cursor.ch >= 4 && line.slice(cursor.ch - 4, cursor.ch) === "    ") {
-      cm.replaceRange("", {line: cursor.line, ch: cursor.ch - 4}, cursor);
-    } else {
-      cm.execCommand("delCharBefore");
-    }
-  }
+          if (cursor.ch >= 4 && line.slice(cursor.ch - 4, cursor.ch) === "    ") {
+            cm.replaceRange("", {line: cursor.line, ch: cursor.ch - 4}, cursor);
+          } else {
+            cm.execCommand("delCharBefore");
+          }
+        }
 }
 });
+      editor1._meta = {
+        inputType: "code",
+        version: 1,
+        questionIndex: i
+        question: q
+      };
       
       ensureCodeMirrorFocus(editor1);
+
+      const wrapper1 = editor1.getWrapperElement();
+      let lastMouseLog = 0;
+
+      wrapper1.addEventListener("mousemove", (e) => {
+        const now = Date.now();
+
+        if (now - lastMouseLog > 100) { // throttle (100ms)
+          lastMouseLog = now;
+
+          keystrokes.push({
+            s_n: currentSession + 1,
+            q: meta.question,
+            r_t: meta.inputType,
+            q_n: meta.questionIndex + 1,
+            version: meta.version,
+            event_type: "mouse",
+
+            data: {
+              x: e.clientX,
+              y: e.clientY
+            },
+
+            timestamp: now
+          });
+        }
+      });
       //Added Code: fully added both editor1on functions
         editor1.on('change', () => {
           updateWordCountEditor(editor1, wordCountDiv);
         });
-        editor1.on('keydown', (instance, e) => {
-          // e is a DOM event; pass it for keystroke logging
-          try { logKeystroke(e); } catch (err) { /* non-fatal */ }
-        });
-        editor1.on('keyup', (instance, e) => {
-          // e is a DOM event; pass it for keystroke logging
-          try { logKeystroke(e); } catch (err) { /* non-fatal */ }
+        editor1.on('keydown', (cm, e) => {
+          try { logKeystroke(e, cm); } catch (err) {}
         });
 
+        editor1.on('keyup', (cm, e) => {
+          try { logKeystroke(e, cm); } catch (err) {}
+        });
+        editor1.on("cursorActivity", (cm) => {
+          const cursor = cm.getCursor();
+
+          keystrokes.push({
+            s_n: currentSession + 1,
+            q: meta.question,
+            r_t: meta.inputType,
+            q_n: meta.questionIndex + 1,
+            version: meta.version,
+
+            event_type: "cursor",
+
+            data: {
+              line: cursor.line,
+              ch: cursor.ch
+            },
+
+            timestamp: Date.now()
+          });
+        });
       // --------- Run button & output ---------hello 
 const runBtn1 = document.createElement('button');
 runBtn1.textContent = "Run";
@@ -452,30 +509,56 @@ stopBtn1.addEventListener("click", () => {
       rightDiv.appendChild(textarea2);
 
       let editor2 = CodeMirror.fromTextArea(textarea2, {
-  lineNumbers: true,
-  mode: "python",
-  theme: "default",
-  indentUnit: 4,
-  smartIndent: true,
-  indentWithTabs: false,
-  extraKeys: {
-  Tab: function(cm) {
-    cm.replaceSelection("    ");
-  },
-  Backspace: function(cm) {
-    let cursor = cm.getCursor();
-    let line = cm.getLine(cursor.line);
+        lineNumbers: true,
+        mode: "python",
+        theme: "default",
+        indentUnit: 4,
+        smartIndent: true,
+        indentWithTabs: false,
+        extraKeys: {
+        Tab: function(cm) {
+          cm.replaceSelection("    ");
+        },
+        Backspace: function(cm) {
+          let cursor = cm.getCursor();
+          let line = cm.getLine(cursor.line);
 
-    if (cursor.ch >= 4 && line.slice(cursor.ch - 4, cursor.ch) === "    ") {
-      cm.replaceRange("", {line: cursor.line, ch: cursor.ch - 4}, cursor);
-    } else {
-      cm.execCommand("delCharBefore");
-    }
-  }
-}
+          if (cursor.ch >= 4 && line.slice(cursor.ch - 4, cursor.ch) === "    ") {
+            cm.replaceRange("", {line: cursor.line, ch: cursor.ch - 4}, cursor);
+          } else {
+            cm.execCommand("delCharBefore");
+          }
+        }
+      }
 });
+editor2._meta = {
+  inputType: "code",
+  version: 2,
+  questionIndex: i
+  question: q
+};
       
       ensureCodeMirrorFocus(editor2);
+      editor2.on("cursorActivity", (cm) => {
+        const cursor = cm.getCursor();
+
+        keystrokes.push({
+          s_n: currentSession + 1,
+          q: meta.question,
+          r_t: meta.inputType,
+          q_n: meta.questionIndex + 1,
+          version: meta.version,
+
+          event_type: "cursor",
+
+          data: {
+            line: cursor.line,
+            ch: cursor.ch
+          },
+
+          timestamp: Date.now()
+        });
+      });
       // 🔒 Disable copy / paste / cut (single editor)
 editor2.on("beforeChange", (cm, change) => {
   if (change.origin === "paste") {
@@ -484,6 +567,32 @@ editor2.on("beforeChange", (cm, change) => {
 });
 
 const wrapper = editor2.getWrapperElement();
+let lastMouseLog = 0;
+
+wrapper.addEventListener("mousemove", (e) => {
+  const now = Date.now();
+
+  if (now - lastMouseLog > 100) { // throttle (100ms)
+    lastMouseLog = now;
+
+    keystrokes.push({
+      s_n: currentSession + 1,
+      q: meta.question,
+      r_t: meta.inputType,
+      q_n: meta.questionIndex + 1,
+      version: meta.version,
+
+      event_type: "mouse",
+
+      data: {
+        x: e.clientX,
+        y: e.clientY
+      },
+
+      timestamp: now
+    });
+  }
+});
 wrapper.addEventListener("paste", e => e.preventDefault());
 wrapper.addEventListener("copy",  e => e.preventDefault());
 wrapper.addEventListener("cut",   e => e.preventDefault());
@@ -491,12 +600,13 @@ wrapper.addEventListener("cut",   e => e.preventDefault());
       editor2.on('change', () => {
         updateWordCountEditor(editor2, wordCountDiv);
       });
-      editor2.on('keydown', (instance, e) => {
-          try { logKeystroke(e); } catch (err) { /* non-fatal */ }
-          });
-      editor2.on('keyup', (instance, e) => {
-          try { logKeystroke(e); } catch (err) { /* non-fatal */ }
-          });
+      editor2.on('keydown', (cm, e) => {
+          try { logKeystroke(e, cm); } catch (err) {}
+        });
+
+      editor2.on('keyup', (cm, e) => {
+          try { logKeystroke(e, cm); } catch (err) {}
+        });
     const runBtn2 = document.createElement("button");
 runBtn2.textContent = "Run";
 
@@ -563,7 +673,33 @@ stopBtn2.addEventListener("click", () => {
     indentUnit: 4,
     smartIndent: true,
   });
+  editor._meta = {
+    inputType: "code",
+    version: 1,
+    questionIndex: i
+    question: q
+  };
 ensureCodeMirrorFocus(editor);
+editor.on("cursorActivity", (cm) => {
+  const cursor = cm.getCursor();
+
+  keystrokes.push({
+    s_n: currentSession + 1,
+    q: meta.question,
+    r_t: meta.inputType,
+    q_n: meta.questionIndex + 1,
+    version: meta.version,
+
+    event_type: "cursor",
+
+    data: {
+      line: cursor.line,
+      ch: cursor.ch
+    },
+
+    timestamp: Date.now()
+  });
+});
 
   // 🔥 Add live word count
   editor.on("change", () => {
@@ -571,8 +707,12 @@ ensureCodeMirrorFocus(editor);
   });
 
   // 🔥 Add keystroke logging for Session 1
-  editor.on("keydown", (instance, e) => {
-    logKeystroke(e);
+  editor.on('keydown', (cm, e) => {
+    try { logKeystroke(e, cm); } catch (err) {}
+  });
+
+  editor.on('keyup', (cm, e) => {
+    try { logKeystroke(e, cm); } catch (err) {}
   });
 
   // ---- Run button + output ----
@@ -644,8 +784,15 @@ explanationBoxV1.className = "explanation-box";
 explanationBoxV1.rows = 6;
 questionDiv.appendChild(explanationBoxV1);
 
-explanationBoxV1.addEventListener("keydown", logKeystroke);
-explanationBoxV1.addEventListener("keyup", logKeystroke);
+explanationBoxV1._meta = {
+  inputType: "explanation",
+  version: 1,
+  questionIndex: i
+  question: q
+};
+
+explanationBoxV1.addEventListener("keydown", (e) => logKeystroke(e, null, explanationBoxV1));
+explanationBoxV1.addEventListener("keyup", (e) => logKeystroke(e, null, explanationBoxV1));
 
 inputs.push({
   question: q,
@@ -667,8 +814,15 @@ explanationBoxV2.addEventListener("paste", (e) => e.preventDefault());
 explanationBoxV2.addEventListener("copy",  (e) => e.preventDefault());
 explanationBoxV2.addEventListener("cut",   (e) => e.preventDefault());
 
-explanationBoxV2.addEventListener("keydown", logKeystroke);
-explanationBoxV2.addEventListener("keyup", logKeystroke);
+explanationBoxV2._meta = {
+  inputType: "explanation",
+  version: 2,
+  questionIndex: i
+  question: q
+};
+
+explanationBoxV2.addEventListener("keydown", (e) => logKeystroke(e, null, explanationBoxV2));
+explanationBoxV2.addEventListener("keyup", (e) => logKeystroke(e, null, explanationBoxV2));
 
 inputs.push({
   question: q,
