@@ -11,32 +11,33 @@ const pendingRuns = {};
 
 function ensureCodeMirrorFocus(editor) {
   const wrapper0 = editor.getWrapperElement();
-  let lastMouseLog = 0;
 
   wrapper0.addEventListener("mousemove", (e) => {
-    const now = Date.now();
+  const now = Date.now();
 
-    if (now - lastMouseLog > 100) { // throttle (100ms)
-      lastMouseLog = now;
+  if (now - editor._lastMouseLog > 100) {
+    editor._lastMouseLog = now;
 
-      keystrokes.push({
-        s_n: currentSession + 1,
-        q: meta.question,
-        r_t: meta.inputType,
-        q_n: meta.questionIndex + 1,
-        version: meta.version,
+    const meta = editor._meta;
 
-        event_type: "mouse",
-        
-        data: {
-          x: e.clientX,
-          y: e.clientY
-        },
+    keystrokes.push({
+      s_n: currentSession + 1,
+      q: meta.question,
+      r_t: meta.inputType,
+      q_n: meta.questionIndex + 1,
+      version: meta.version,
 
-        timestamp: now
-      });
-    }
-  });
+      event_type: "mouse",
+
+      data: {
+        x: e.clientX,
+        y: e.clientY
+      },
+
+      timestamp: now
+    });
+  }
+});
 
   wrapper0.addEventListener("mousedown", () => {
     setTimeout(() => {
@@ -387,17 +388,19 @@ function renderQuestions(container, questions, twoInputs = false) {
         questionIndex: i,
         question: q
       };
-      
+      editor1._lastMouseLog = 0;
+
       ensureCodeMirrorFocus(editor1);
 
       const wrapper1 = editor1.getWrapperElement();
-      let lastMouseLog = 0;
 
       wrapper1.addEventListener("mousemove", (e) => {
         const now = Date.now();
 
-        if (now - lastMouseLog > 100) { // throttle (100ms)
-          lastMouseLog = now;
+        if (now - editor1._lastMouseLog > 100) {
+          editor1._lastMouseLog = now;
+
+          const meta = editor1._meta;
 
           keystrokes.push({
             s_n: currentSession + 1,
@@ -405,6 +408,7 @@ function renderQuestions(container, questions, twoInputs = false) {
             r_t: meta.inputType,
             q_n: meta.questionIndex + 1,
             version: meta.version,
+
             event_type: "mouse",
 
             data: {
@@ -537,6 +541,7 @@ editor2._meta = {
   questionIndex: i,
   question: q
 };
+editor2._lastMouseLog = 0;
       
       ensureCodeMirrorFocus(editor2);
       editor2.on("cursorActivity", (cm) => {
@@ -566,14 +571,15 @@ editor2.on("beforeChange", (cm, change) => {
   }
 });
 
-const wrapper = editor2.getWrapperElement();
-let lastMouseLog = 0;
+const wrapper2 = editor2.getWrapperElement();
 
-wrapper.addEventListener("mousemove", (e) => {
+wrapper2.addEventListener("mousemove", (e) => {
   const now = Date.now();
 
-  if (now - lastMouseLog > 100) { // throttle (100ms)
-    lastMouseLog = now;
+  if (now - editor2._lastMouseLog > 100) {
+    editor2._lastMouseLog = now;
+
+    const meta = editor2._meta;
 
     keystrokes.push({
       s_n: currentSession + 1,
@@ -593,9 +599,9 @@ wrapper.addEventListener("mousemove", (e) => {
     });
   }
 });
-wrapper.addEventListener("paste", e => e.preventDefault());
-wrapper.addEventListener("copy",  e => e.preventDefault());
-wrapper.addEventListener("cut",   e => e.preventDefault());
+wrapper2.addEventListener("paste", e => e.preventDefault());
+wrapper2.addEventListener("copy",  e => e.preventDefault());
+wrapper2.addEventListener("cut",   e => e.preventDefault());
       //Added Code: Fully added editor 2 on
       editor2.on('change', () => {
         updateWordCountEditor(editor2, wordCountDiv);
@@ -679,6 +685,7 @@ stopBtn2.addEventListener("click", () => {
     questionIndex: i,
     question: q
   };
+  editor._lastMouseLog = 0;
 ensureCodeMirrorFocus(editor);
 editor.on("cursorActivity", (cm) => {
   const cursor = cm.getCursor();
