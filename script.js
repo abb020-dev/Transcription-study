@@ -432,6 +432,7 @@ function renderQuestions(container, questions, twoInputs = false) {
           try { logKeystroke(e, cm); } catch (err) {}
         });
         editor1.on("cursorActivity", (cm) => {
+          const meta = editor1._meta;
           const cursor = cm.getCursor();
 
           keystrokes.push({
@@ -545,6 +546,7 @@ editor2._lastMouseLog = 0;
       
       ensureCodeMirrorFocus(editor2);
       editor2.on("cursorActivity", (cm) => {
+        const meta = editor2._meta;
         const cursor = cm.getCursor();
 
         keystrokes.push({
@@ -688,6 +690,7 @@ stopBtn2.addEventListener("click", () => {
   editor._lastMouseLog = 0;
 ensureCodeMirrorFocus(editor);
 editor.on("cursorActivity", (cm) => {
+  const meta = editor._meta;
   const cursor = cm.getCursor();
 
   keystrokes.push({
