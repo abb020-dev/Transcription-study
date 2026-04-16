@@ -4,7 +4,6 @@
 // Pyodide + Run-button code placed at the TOP (as requested)
 // -------------------------
 let pyWorker = null;
-let interruptBuffer = null;
 let workerReady = false;
 
 const pendingRuns = {};
@@ -47,13 +46,11 @@ function ensureCodeMirrorFocus(editor) {
   });
 }
 function setupWorker() {
-  interruptBuffer = new Int32Array(new SharedArrayBuffer(4));
-
+  workerReady = false;
   pyWorker = new Worker("py-worker.js");
 
   pyWorker.postMessage({
-    type: "init",
-    interruptBuffer: interruptBuffer.buffer
+    type: "init"
   });
 
   pyWorker.onmessage = (event) => {
@@ -493,13 +490,14 @@ runBtn1.addEventListener("click", () => {
 });
 
 stopBtn1.addEventListener("click", () => {
-  if (!currentRunId1) return;
+  if (pyWorker) {
+    pyWorker.terminate();
+  }
 
-  pyWorker.postMessage({ type: "interrupt" });
-  output1.textContent = "Stopping...";
-  currentRunId1 = null;
+  setupWorker(); 
+
+  output1.textContent += "\n[Execution stopped]\n";
 });
-
       inputs.push({ question: q, element: editor1, type: "code", version: 1 });
 
       // Right input column
@@ -655,11 +653,13 @@ runBtn2.addEventListener("click", () => {
 });
 
 stopBtn2.addEventListener("click", () => {
-  if (!currentRunId2) return;
+  if (pyWorker) {
+    pyWorker.terminate();
+  }
 
-  pyWorker.postMessage({ type: "interrupt" });
-  output2.textContent = "Stopping...";
-  currentRunId2 = null;
+  setupWorker();
+
+  output2.textContent += "\n[Execution stopped]\n";
 });
 
      inputs.push({ question: q, element: editor2, type: "code", version: 2 }); 
@@ -766,12 +766,15 @@ runBtn.addEventListener("click", () => {
 });
 
 stopBtn.addEventListener("click", () => {
-  if (!currentRunId) return;
+  if (pyWorker) {
+    pyWorker.terminate();
+  }
 
-  pyWorker.postMessage({ type: "interrupt" });
-  outputSingle.textContent = "Stopping...";
-  currentRunId = null;
+  setupWorker(); 
+
+  outputSingle.textContent += "\n[Execution stopped]\n";
 });
+
   inputs.push({ question: q, element: editor, type: "code", version: 1 });
 } 
 // ===============================
