@@ -240,6 +240,35 @@ function logKeystroke(event, editor = null, element = null) {
   });
 }
 
+function logTextareaCursor(e) {
+  const el = e.target;
+  const meta = el._meta;
+
+  const pos = el.selectionStart;
+  const text = el.value;
+
+  const lines = text.substring(0, pos).split("\n");
+  const line = lines.length - 1;
+  const ch = lines[lines.length - 1].length;
+
+  keystrokes.push({
+    s_n: currentSession + 1,
+    q: meta.question,
+    r_t: meta.inputType,
+    q_n: meta.questionIndex + 1,
+    version: meta.version,
+
+    event_type: "cursor",
+
+    data: {
+      line: line,
+      ch: ch
+    },
+
+    timestamp: Date.now()
+  });
+}
+
 // Function to start the session after user information is captured
 function startSession() {
   hideAlert(); // Hide alert message when starting the session
@@ -803,9 +832,38 @@ explanationBoxV1._meta = {
   questionIndex: i,
   question: q
 };
+explanationBoxV1._lastMouseLog = 0;
 
 explanationBoxV1.addEventListener("keydown", (e) => logKeystroke(e, null, explanationBoxV1));
 explanationBoxV1.addEventListener("keyup", (e) => logKeystroke(e, null, explanationBoxV1));
+explanationBoxV1.addEventListener("click", logTextareaCursor);
+
+explanationBoxV1.addEventListener("mousemove", (e) => {
+  const now = Date.now();
+
+  if (now - explanationBoxV1._lastMouseLog > 100) {
+    explanationBoxV1._lastMouseLog = now;
+
+    const meta = explanationBoxV1._meta;
+
+    keystrokes.push({
+      s_n: currentSession + 1,
+      q: meta.question,
+      r_t: meta.inputType,
+      q_n: meta.questionIndex + 1,
+      version: meta.version,
+
+      event_type: "mouse",
+
+      data: {
+        x: e.clientX,
+        y: e.clientY
+      },
+
+      timestamp: now
+    });
+  }
+});
 
 inputs.push({
   question: q,
@@ -833,9 +891,38 @@ explanationBoxV2._meta = {
   questionIndex: i,
   question: q
 };
+explanationBoxV2._lastMouseLog = 0;
 
 explanationBoxV2.addEventListener("keydown", (e) => logKeystroke(e, null, explanationBoxV2));
 explanationBoxV2.addEventListener("keyup", (e) => logKeystroke(e, null, explanationBoxV2));
+explanationBoxV2.addEventListener("click", logTextareaCursor);
+
+explanationBoxV2.addEventListener("mousemove", (e) => {
+  const now = Date.now();
+
+  if (now - explanationBoxV2._lastMouseLog > 100) {
+    explanationBoxV2._lastMouseLog = now;
+
+    const meta = explanationBoxV2._meta;
+
+    keystrokes.push({
+      s_n: currentSession + 1,
+      q: meta.question,
+      r_t: meta.inputType,
+      q_n: meta.questionIndex + 1,
+      version: meta.version,
+
+      event_type: "mouse",
+
+      data: {
+        x: e.clientX,
+        y: e.clientY
+      },
+
+      timestamp: now
+    });
+  }
+});
 
 inputs.push({
   question: q,
