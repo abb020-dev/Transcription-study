@@ -944,7 +944,8 @@ function createDownloadButton(blob, filename, buttonText) {
 
 // Function to submit form data
 function submitForm() {
-  console.log("CURRENT SESSION:", currentSession);
+  console.log(inputs);
+  //console.log("CURRENT SESSION:", currentSession);- check to see it was session 3
   const session1ResponseStartIndex = 0;
   const session2ResponseStartIndex = session1Questions[language].length;
   const session3ResponseStartIndex = session1Questions[language].length + session2Questions[language].length * 2;
