@@ -982,8 +982,10 @@ if (currentSession === 2) {
 }
 
 if (currentSession === 3) {
+  console.log("Questions length:", session3Questions[language].length);
+  console.log("Inputs length:", inputs.length);
   responses = session3Questions[language].map((q, i) => {
-
+    //CONSOLE LOG DEBUGGING
     console.log("Checking inputs for question", i, {
       code1: getInput(i, "code", 1),
       code2: getInput(i, "code", 2),
