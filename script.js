@@ -941,7 +941,13 @@ function createDownloadButton(blob, filename, buttonText) {
   });
   return button;
 }
-
+function getInput(qIndex, type, version) {
+  return inputs.find(inp =>
+    inp.type === type &&
+    inp.version === version &&
+    inp.element._meta.questionIndex === qIndex
+  );
+}
 // Function to submit form data
 function submitForm() {
   console.log(inputs);
@@ -976,15 +982,25 @@ if (currentSession === 2) {
 }
 
 if (currentSession === 3) {
-  responses = session3Questions[language].map((q, i) => ({
-  s: 4,
-  q: q,
-  q_id: i + 1,
-  chatgptAnswer: inputs[i * 4].element.getValue(),
-  retype: inputs[i * 4 + 1].element.getValue(),
-  explanation_version_1: inputs[i * 4 + 2].element.value,
-  explanation_version_2: inputs[i * 4 + 3].element.value
-}));
+  responses = session3Questions[language].map((q, i) => {
+
+    console.log("Checking inputs for question", i, {
+      code1: getInput(i, "code", 1),
+      code2: getInput(i, "code", 2),
+      exp1: getInput(i, "explanation", 1),
+      exp2: getInput(i, "explanation", 2),
+    });
+
+    return {
+      s: 4,
+      q: q,
+      q_id: i + 1,
+      chatgptAnswer: getInput(i, "code", 1)?.element.getValue() || "",
+      retype: getInput(i, "code", 2)?.element.getValue() || "",
+      explanation_version_1: getInput(i, "explanation", 1)?.element.value || "",
+      explanation_version_2: getInput(i, "explanation", 2)?.element.value || ""
+    };
+  });
 }
     let responseData = {
       responses: responses
