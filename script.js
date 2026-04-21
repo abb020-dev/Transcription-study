@@ -984,18 +984,12 @@ if (currentSession === 2) {
 if (currentSession === 3) {
   console.log("Questions length:", session3Questions[language].length);
   console.log("Inputs length:", inputs.length);
-  responses = session3Questions[language].map((q, i) => {
-    //CONSOLE LOG DEBUGGING
-    console.log("Checking inputs for question", i, {
-      code1: getInput(i, "code", 1),
-      code2: getInput(i, "code", 2),
-      exp1: getInput(i, "explanation", 1),
-      exp2: getInput(i, "explanation", 2),
-    });
+  const numQuestions = inputs.length / 4;
 
+  responses = Array.from({ length: numQuestions }, (_, i) => {
     return {
       s: 4,
-      q: q,
+      q: questions[i + 1],
       q_id: i + 1,
       chatgptAnswer: getInput(i, "code", 1)?.element.getValue() || "",
       retype: getInput(i, "code", 2)?.element.getValue() || "",
