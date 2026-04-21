@@ -21,9 +21,8 @@ function ensureCodeMirrorFocus(editor) {
 
     keystrokes.push({
       s_n: currentSession + 1,
-      q: meta.question,
       r_t: meta.inputType,
-      q_n: meta.questionIndex + 1,
+      q_id: meta.questionIndex + 1,
       version: meta.version,
 
       event_type: "mouse",
@@ -193,6 +192,7 @@ let currentSession = window.FORCED_SESSION || 1;
 let userInfo = {};
 let totalQuestions = 0; // Track the total number of questions
 let language = 'en'; // Default language
+const questions = {};
 
 // Function to log keystrokes, excluding first input in sessions 2 and 3
 // Function to log keystrokes, excluding first input in sessions 2 and 3
@@ -221,8 +221,7 @@ function logKeystroke(event, editor = null, element = null) {
   keystrokes.push({
     s_n: currentSession + 1,
     r_t: meta.inputType,
-    q: meta.question,
-    q_n: (meta.questionIndex ?? 0) + 1,
+    q_id: meta.questionIndex + 1,
     version: meta.version,
 
     event_type: "key",
@@ -253,9 +252,8 @@ function logTextareaCursor(e) {
 
   keystrokes.push({
     s_n: currentSession + 1,
-    q: meta.question,
     r_t: meta.inputType,
-    q_n: meta.questionIndex + 1,
+    q_id: meta.questionIndex + 1,
     version: meta.version,
 
     event_type: "cursor",
@@ -412,8 +410,8 @@ function renderQuestions(container, questions, twoInputs = false) {
         inputType: "code",
         version: 1,
         questionIndex: i,
-        question: q
       };
+      questions[i + 1] = q
       editor1._lastMouseLog = 0;
 
       ensureCodeMirrorFocus(editor1);
@@ -437,9 +435,8 @@ function renderQuestions(container, questions, twoInputs = false) {
 
           keystrokes.push({
             s_n: currentSession + 1,
-            q: meta.question,
             r_t: meta.inputType,
-            q_n: meta.questionIndex + 1,
+            q_id: meta.questionIndex + 1,
             version: meta.version,
 
             event_type: "cursor",
@@ -541,8 +538,8 @@ editor2._meta = {
   inputType: "code",
   version: 2,
   questionIndex: i,
-  question: q
 };
+questions[i + 1] = q;
 editor2._lastMouseLog = 0;
       
       ensureCodeMirrorFocus(editor2);
@@ -552,9 +549,8 @@ editor2._lastMouseLog = 0;
 
         keystrokes.push({
           s_n: currentSession + 1,
-          q: meta.question,
           r_t: meta.inputType,
-          q_n: meta.questionIndex + 1,
+          q_id: meta.questionIndex + 1,
           version: meta.version,
 
           event_type: "cursor",
@@ -661,8 +657,8 @@ stopBtn2.addEventListener("click", () => {
     inputType: "code",
     version: 1,
     questionIndex: i,
-    question: q
   };
+  questions[i + 1] = q;
   editor._lastMouseLog = 0;
 ensureCodeMirrorFocus(editor);
 editor.on("cursorActivity", (cm) => {
@@ -671,9 +667,8 @@ editor.on("cursorActivity", (cm) => {
 
   keystrokes.push({
     s_n: currentSession + 1,
-    q: meta.question,
     r_t: meta.inputType,
-    q_n: meta.questionIndex + 1,
+    q_id: meta.questionIndex + 1,
     version: meta.version,
 
     event_type: "cursor",
@@ -777,8 +772,8 @@ explanationBoxV1._meta = {
   inputType: "explanation",
   version: 1,
   questionIndex: i,
-  question: q
 };
+questions[i + 1] = q;
 explanationBoxV1._lastMouseLog = 0;
 
 explanationBoxV1.addEventListener("keydown", (e) => logKeystroke(e, null, explanationBoxV1));
@@ -795,9 +790,8 @@ explanationBoxV1.addEventListener("mousemove", (e) => {
 
     keystrokes.push({
       s_n: currentSession + 1,
-      q: meta.question,
       r_t: meta.inputType,
-      q_n: meta.questionIndex + 1,
+      q_id: meta.questionIndex + 1,
       version: meta.version,
 
       event_type: "mouse",
@@ -836,8 +830,8 @@ explanationBoxV2._meta = {
   inputType: "explanation",
   version: 2,
   questionIndex: i,
-  question: q
 };
+questions[i + 1] = q;
 explanationBoxV2._lastMouseLog = 0;
 
 explanationBoxV2.addEventListener("keydown", (e) => logKeystroke(e, null, explanationBoxV2));
@@ -854,9 +848,8 @@ explanationBoxV2.addEventListener("mousemove", (e) => {
 
     keystrokes.push({
       s_n: currentSession + 1,
-      q: meta.question,
       r_t: meta.inputType,
-      q_n: meta.questionIndex + 1,
+      q_id: meta.questionIndex + 1,
       version: meta.version,
 
       event_type: "mouse",
@@ -984,7 +977,7 @@ if (currentSession === 3) {
   responses = session3Questions[language].map((q, i) => ({
   s: 4,
   q: q,
-  q_n: i + 1,
+  q_id: i + 1,
   chatgptAnswer: inputs[i * 4].element.getValue(),
   retype: inputs[i * 4 + 1].element.getValue(),
   explanation_version_1: inputs[i * 4 + 2].element.value,
@@ -997,6 +990,7 @@ if (currentSession === 3) {
 
     let keystrokeData = {
       keystrokes: keystrokes
+      questions: questions
     };
 
     // Capture user information
