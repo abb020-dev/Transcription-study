@@ -989,7 +989,7 @@ if (currentSession === 3) {
     };
 
     let keystrokeData = {
-      keystrokes: keystrokes
+      keystrokes: keystrokes,
       questions: questions
     };
 
