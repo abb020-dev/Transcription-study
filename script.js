@@ -53,7 +53,7 @@ function setupWorker() {
   });
 
   pyWorker.onmessage = (event) => {
-    const data = event.data;
+    const data = event.daBta;
 
     if (data.type === "ready") {
       workerReady = true;
@@ -186,6 +186,7 @@ let sessionInstructions = {
 };
 
 // Global variables to store inputs, keystrokes, and user information
+const questionsMap = {};
 let inputs = [];
 let keystrokes = [];
 let currentSession = window.FORCED_SESSION || 1;
@@ -305,8 +306,8 @@ submitButton.addEventListener('click', () => {
   } else if (currentSession === 2) {
     questions = session2Questions[language];
   } else {
-    questions = session3Questions[language];
-  }
+    questions = Object.values(questionsMap);
+}
 
   let twoInputs = currentSession !== 1;
 
@@ -360,6 +361,7 @@ function renderQuestions(container, questions, twoInputs = false) {
 
   // ===== Question Rendering =====
   questions.forEach((q, i) => {
+    questionsMap[i + 1] = q;
     const questionDiv = document.createElement("div");
     questionDiv.className = "question-block";
 
@@ -411,7 +413,7 @@ function renderQuestions(container, questions, twoInputs = false) {
         version: 1,
         questionIndex: i,
       };
-      questions[i + 1] = q
+      //questions[i + 1] = q
       editor1._lastMouseLog = 0;
 
       ensureCodeMirrorFocus(editor1);
@@ -539,7 +541,7 @@ editor2._meta = {
   version: 2,
   questionIndex: i,
 };
-questions[i + 1] = q;
+//questions[i + 1] = q;
 editor2._lastMouseLog = 0;
       
       ensureCodeMirrorFocus(editor2);
@@ -658,7 +660,7 @@ stopBtn2.addEventListener("click", () => {
     version: 1,
     questionIndex: i,
   };
-  questions[i + 1] = q;
+  //questions[i + 1] = q;
   editor._lastMouseLog = 0;
 ensureCodeMirrorFocus(editor);
 editor.on("cursorActivity", (cm) => {
@@ -773,7 +775,7 @@ explanationBoxV1._meta = {
   version: 1,
   questionIndex: i,
 };
-questions[i + 1] = q;
+//questions[i + 1] = q;
 explanationBoxV1._lastMouseLog = 0;
 
 explanationBoxV1.addEventListener("keydown", (e) => logKeystroke(e, null, explanationBoxV1));
@@ -831,7 +833,7 @@ explanationBoxV2._meta = {
   version: 2,
   questionIndex: i,
 };
-questions[i + 1] = q;
+//questions[i + 1] = q;
 explanationBoxV2._lastMouseLog = 0;
 
 explanationBoxV2.addEventListener("keydown", (e) => logKeystroke(e, null, explanationBoxV2));
@@ -899,18 +901,27 @@ function updateWordCountEditor(editor, wordCountDiv) {
 
 // Function to check if all questions are answered
 function checkAllAnswered(questions, twoInputs = false) {
-  let startIndex = totalQuestions;
-  let inputsPerQuestion = twoInputs ? 4 : 2; // code v1 + code v2 + expl v1 + expl v2
-  let endIndex = startIndex + questions.length * inputsPerQuestion;
+  return questions.every((q, i) => {
 
-  return inputs
-    .slice(startIndex, endIndex)
-    .every(input => {
+    const relatedInputs = inputs.filter(inp =>
+      inp.question === q
+    );
+
+    // 🔥 Expectation check (prevents ghost/extra question bugs)
+    const expectedCount = twoInputs ? 4 : 2;
+
+    if (relatedInputs.length !== expectedCount) {
+      console.warn("Wrong number of inputs for question", i, relatedInputs);
+      return false;
+    }
+
+    return relatedInputs.every(input => {
       if (input.type === "explanation") {
         return input.element.value.trim() !== "";
       }
       return input.element.getValue().trim() !== "";
     });
+  });
 }
 
 // Function to create download link
@@ -956,7 +967,7 @@ function submitForm() {
   const session2ResponseStartIndex = session1Questions[language].length;
   const session3ResponseStartIndex = session1Questions[language].length + session2Questions[language].length * 2;
 //Added Code: Changed every value to getValue()
-  if (checkAllAnswered(session3Questions[language], true)) {
+  if (checkAllAnswered(Object.values(questionsMap), true)) {
     let responses;
 
 if (currentSession === 1) {
@@ -982,29 +993,57 @@ if (currentSession === 2) {
 }
 
 if (currentSession === 3) {
-  console.log("Questions length:", session3Questions[language].length);
-  console.log("Inputs length:", inputs.length);
-  const numQuestions = inputs.length / 4;
 
-  responses = Array.from({ length: numQuestions }, (_, i) => {
+  const totalQuestions = Object.keys(questionsMap).length;
+
+  responses = Array.from({ length: totalQuestions }, (_, i) => {
+    const q = questionsMap[i + 1];
+
+    const code1 = inputs.find(inp =>
+      inp.question === q &&
+      inp.type === "code" &&
+      inp.version === 1
+    );
+
+    const code2 = inputs.find(inp =>
+      inp.question === q &&
+      inp.type === "code" &&
+      inp.version === 2
+    );
+
+    const exp1 = inputs.find(inp =>
+      inp.question === q &&
+      inp.type === "explanation" &&
+      inp.version === 1
+    );
+
+    const exp2 = inputs.find(inp =>
+      inp.question === q &&
+      inp.type === "explanation" &&
+      inp.version === 2
+    );
+
+    console.log("Checking inputs for question", i, { code1, code2, exp1, exp2 });
+
     return {
       s: 4,
-      q: questions[i + 1],
+      q: q,
       q_id: i + 1,
-      chatgptAnswer: getInput(i, "code", 1)?.element.getValue() || "",
-      retype: getInput(i, "code", 2)?.element.getValue() || "",
-      explanation_version_1: getInput(i, "explanation", 1)?.element.value || "",
-      explanation_version_2: getInput(i, "explanation", 2)?.element.value || ""
+      chatgptAnswer: code1?.element.getValue() || "",
+      retype: code2?.element.getValue() || "",
+      explanation_version_1: exp1?.element.value || "",
+      explanation_version_2: exp2?.element.value || ""
     };
   });
 }
     let responseData = {
-      responses: responses
+      responses: responses,
+      questions: questionsMap
     };
 
     let keystrokeData = {
       keystrokes: keystrokes,
-      questions: questions
+      questions: questionsMap
     };
 
     // Capture user information
