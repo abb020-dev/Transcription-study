@@ -1142,13 +1142,30 @@ function showThankYouMessage(responseBlob, keystrokeBlob, userInfoBlob) {
 // Function to show alert message
 function showAlert(message) {
   let alertDiv = document.querySelector('.alert');
+
   if (!alertDiv) {
     alertDiv = document.createElement('div');
     alertDiv.className = 'alert';
-    document.querySelector('.container').appendChild(alertDiv); // Append alert to the main container
+    document.querySelector('.container').appendChild(alertDiv);
   }
+
   alertDiv.textContent = message;
   alertDiv.style.display = 'block';
+  alertDiv.style.opacity = '1';
+
+  // Clear previous timers
+  if (alertDiv._fadeTimeout) clearTimeout(alertDiv._fadeTimeout);
+  if (alertDiv._hideTimeout) clearTimeout(alertDiv._hideTimeout);
+
+  // Fade
+  alertDiv._fadeTimeout = setTimeout(() => {
+    alertDiv.style.opacity = '0';
+  }, 2500);
+
+  // Hide
+  alertDiv._hideTimeout = setTimeout(() => {
+    alertDiv.style.display = 'none';
+  }, 3000);
 }
 
 // Function to hide alert message
