@@ -53,7 +53,7 @@ function setupWorker() {
   });
 
   pyWorker.onmessage = (event) => {
-    const data = event.daBta;
+    const data = event.data;
 
     if (data.type === "ready") {
       workerReady = true;
@@ -612,7 +612,7 @@ runBtn2.addEventListener("click", () => {
   const code = editor2.getValue().trim();
 
   if (!workerReady) {
-    output1.textContent = "Python still loading...";
+    output2.textContent = "Python still loading...";
     return;
   }
 
