@@ -324,7 +324,7 @@ submitButton.addEventListener('click', () => {
 }
 
 // Added Code: Fully replaced this function to add the code boxes to replace the text area boxes. Overall this is a function to render questions dynamically
-function renderQuestions(container, questions, twoInputs = false) {
+function renderQuestions(container, questions, twoInputs = false) {        // 🔥 also reset inputs (VERY important)
   container.innerHTML = "";
 
   // ===== Instruction Rendering =====
@@ -500,7 +500,13 @@ stopBtn1.addEventListener("click", () => {
 
   output1.textContent += "\n[Execution stopped]\n";
 });
-      inputs.push({ question: q, element: editor1, type: "code", version: 1 });
+      inputs.push({ 
+        question: q, 
+        questionIndex: i,
+        element: editor1, 
+        type: "code", 
+        version: 1 
+      });
 
       // Right input column
       const rightDiv = document.createElement("div");
@@ -636,7 +642,13 @@ stopBtn2.addEventListener("click", () => {
   output2.textContent += "\n[Execution stopped]\n";
 });
 
-     inputs.push({ question: q, element: editor2, type: "code", version: 2 }); 
+     inputs.push({ 
+      question: q, 
+      questionIndex: i,
+      element: editor2, 
+      type: "code", 
+      version: 2 
+    });
 
       const dualDiv = document.createElement("div");
       dualDiv.className = "dual-input";
@@ -748,7 +760,13 @@ stopBtn.addEventListener("click", () => {
   outputSingle.textContent += "\n[Execution stopped]\n";
 });
 
-  inputs.push({ question: q, element: editor, type: "code", version: 1 });
+  inputs.push({ 
+    question: q, 
+    questionIndex: i,
+    element: editor, 
+    type: "code", 
+    version: 1 
+  });
 } 
 // ===============================
 // Explanation section (TEXT INPUT) - NOW TWO VERSIONS
@@ -810,6 +828,7 @@ explanationBoxV1.addEventListener("mousemove", (e) => {
 
 inputs.push({
   question: q,
+  questionIndex: i,
   element: explanationBoxV1,
   type: "explanation",
   version: 1
@@ -868,6 +887,7 @@ explanationBoxV2.addEventListener("mousemove", (e) => {
 
 inputs.push({
   question: q,
+  questionIndex: i,
   element: explanationBoxV2,
   type: "explanation",
   version: 2
@@ -904,7 +924,7 @@ function checkAllAnswered(questions, twoInputs = false) {
   return questions.every((q, i) => {
 
     const relatedInputs = inputs.filter(inp =>
-      inp.question === q
+      inp.questionIndex === i
     );
 
     // 🔥 Expectation check (prevents ghost/extra question bugs)
@@ -997,31 +1017,31 @@ if (currentSession === 3) {
   const totalQuestions = Object.keys(questionsMap).length;
 
   responses = Array.from({ length: totalQuestions }, (_, i) => {
-    const q = questionsMap[i + 1];
+  const q = questionsMap[i + 1];
 
-    const code1 = inputs.find(inp =>
-      inp.question === q &&
-      inp.type === "code" &&
-      inp.version === 1
-    );
+  const code1 = inputs.find(inp =>
+    inp.questionIndex === i &&
+    inp.type === "code" &&
+    inp.version === 1
+  );
 
-    const code2 = inputs.find(inp =>
-      inp.question === q &&
-      inp.type === "code" &&
-      inp.version === 2
-    );
+  const code2 = inputs.find(inp =>
+    inp.questionIndex === i &&
+    inp.type === "code" &&
+    inp.version === 2
+  );
 
-    const exp1 = inputs.find(inp =>
-      inp.question === q &&
-      inp.type === "explanation" &&
-      inp.version === 1
-    );
+  const exp1 = inputs.find(inp =>
+    inp.questionIndex === i &&
+    inp.type === "explanation" &&
+    inp.version === 1
+  );
 
-    const exp2 = inputs.find(inp =>
-      inp.question === q &&
-      inp.type === "explanation" &&
-      inp.version === 2
-    );
+  const exp2 = inputs.find(inp =>
+    inp.questionIndex === i &&
+    inp.type === "explanation" &&
+    inp.version === 2
+  );
 
     console.log("Checking inputs for question", i, { code1, code2, exp1, exp2 });
 
