@@ -1071,8 +1071,13 @@ if (currentSession === 3) {
       gender: document.querySelector('input[name="gender"]:checked').value,
       age: document.getElementById('age').value,
       handedness: document.querySelector('input[name="handedness"]:checked').value,
-      // Added code: commented out korean profieciency koreanProficiency: document.getElementById('korean-proficiency').value,
-      // Added code: commented out education level educationLevel: document.getElementById('education-level').value
+
+      // ✅ Screen / viewport data (ADDED)
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
+      screenWidth: window.screen.width,
+      screenHeight: window.screen.height,
+      devicePixelRatio: window.devicePixelRatio
     };
 
     // Convert data to JSON format
